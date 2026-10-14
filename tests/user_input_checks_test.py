@@ -15,6 +15,7 @@ from torch.distributions import (
     Exponential,
     Gamma,
     MultivariateNormal,
+    Pareto,
     Uniform,
 )
 
@@ -278,6 +279,18 @@ def test_process_prior(prior):
     assert prior.log_prob(theta).shape[0] == batch_size, (
         "Number of log probs must match number of input values."
     )
+
+
+def test_process_prior_casts_support_dtype():
+    """Test that the output prior's samples and support have the same dtype.
+
+    This is a regression test for a previous issue where sample and support dtypes
+    could mismatch in the output prior in the specific case of a distribution with a
+    tensor support that is not already a float32 tensor.
+    """
+    prior = Pareto(ones(1, dtype=torch.float64), ones(1, dtype=torch.float64))
+    prior, _, _ = process_prior(prior)  # output prior
+    assert prior.sample().dtype == prior.support.lower_bound.dtype
 
 
 @pytest.mark.parametrize(
